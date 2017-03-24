@@ -26,13 +26,15 @@ import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 from lsst.obs.base import CameraMapper
 import lsst.pex.policy as pexPolicy
-from .monocam import Monocam
+from .monocam import Monocam, MakeMonocamRawVisitInfo
 
 __all__ = ["MonocamMapper"]
 
 
 class MonocamMapper(CameraMapper):
     packageName = 'obs_monocam'
+    
+    MakeRawVisitInfoClass = MakeMonocamRawVisitInfo
 
     def __init__(self, inputPolicy=None, **kwargs):
         policyFile = pexPolicy.DefaultPolicyFile(self.packageName, "monocamMapper.paf", "policy")
