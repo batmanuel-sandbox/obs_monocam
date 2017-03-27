@@ -27,12 +27,9 @@ from lsst.afw.table import AmpInfoCatalog, AmpInfoTable, LL
 from lsst.afw.cameraGeom.cameraFactory import makeDetector
 from lsst.obs.base import MakeRawVisitInfo
 from lsst.afw.coord import Coord, IcrsCoord, Observatory, Weather
-from lsst.afw.geom import degrees
-from lsst.afw.image import makeVisitInfo
-from lsst.afw.image import VisitInfo, RotType_UNKNOWN
-from lsst.afw.geom import Angle
+from lsst.afw.geom import degrees, Angle
+from lsst.afw.image import makeVisitInfo, RotType_UNKNOWN
 from lsst.daf.base import DateTime
-
 
 
 class Monocam(cameraGeom.Camera):
@@ -225,86 +222,29 @@ class Monocam(cameraGeom.Camera):
         return ampCatalog
     
 class MakeMonocamRawVisitInfo(MakeRawVisitInfo):
-    """Make a VisitInfo from the FITS header of a raw Monocam image
-    The convention for ROTANG is as follows:
-    at  0 degrees E = +Y CCD = -X Focal Plane, N = +X CCD = +Y Focal Plane:   0 boresightRotAng
-    at 90 degrees E = -X CCD = -Y Focal Plane, N = +Y CCD = -X Focal Plane: 270 boresightRotAng
-    So boresightRotAng = -ROTANG
-    """
+    """Make a VisitInfo from the FITS header of a raw Monocam image"""
     observatory = Observatory(-111.740278*degrees, 35.184167*degrees, 2273)  # long, lat, elev
-
     
     def setArgDict(self, md, argDict):
         """Set an argument dict for VisitInfo and pop associated metadata
         @param[in,out] md  metadata, as an lsst.daf.base.PropertyList or PropertySet
         @param[in,out] argdict  a dict of arguments
         """
-        print('\n')
-        print(md.paramNames())
-#        md.get('AIRMASS')
-#        nanFloat = float("nan")
-#        nanAngle = Angle(nanFloat)
-#
-#        exposureId=0
-#        exposureTime=nanFloat
-#        darkTime=nanFloat
-#        date=DateTime()
-#        ut1=nanFloat
-#        era=nanAngle
-#        boresightRaDec=IcrsCoord(nanAngle, nanAngle)
-#        boresightAzAlt=Coord(nanAngle, nanAngle)
-#        boresightAirmass=nanFloat
-#        boresightRotAngle=nanAngle
-#        rotType=RotType_UNKNOWN
-#        observatory=Observatory(nanAngle, nanAngle, nanFloat)
-#        weather=Weather(nanFloat, nanFloat, nanFloat)
-
-        MakeRawVisitInfo.setArgDict(self, md, argDict)
-        argDict["darkTime"] = self.popFloat(md, "DARKTIME")
-#        argDict["boresightAzAlt"] = Coord(
-#            self.popAngle(md, "AZIMUTH"),
-#            self.altitudeFromZenithDistance(self.popAngle(md, "ZENITH")),
-#        )
-        argDict["boresightRaDec"] = IcrsCoord(
-           self.popAngle(md, "RA"),
-            self.popAngle(md, "DEC"),
-        )
-        argDict["boresightAirmass"] = self.popFloat(md, "AIRMASS")
-#        argDict["boresightAirmass"] = 200.0
-
-#        argDict["boresightRotAngle"] = -self.popAngle(md, "ROTANG")
-#        argDict["rotType"] = RotType.SKY
-        argDict["observatory"] = self.observatory
-#        argDict["weather"] = Weather(
-#            self.popFloat(md, "TEMPERA"),
-#            self.pascalFromMmHg(self.popFloat(md, "PRESS")),
-#            float("nan"),
-#        )
-        # phosim doesn't supply LST, HA, or UT1, and the alt/az/ra/dec/time can be inconsistent.
-        # We will leave ERA as NaN until a better answer is available.
+        argDict["exposureTime"] = self.popFloat(md, "EXPTIME")
+        argDict["date"] = self.getDateAvg(md=md, exposureTime=argDict["exposureTime"])
+        if md.get('OBJECT') not in ['DARK', 'FLAT', 'BIAS']: 
+            argDict["darkTime"] = self.popFloat(md, "DARKTIME")
+            argDict["boresightRaDec"] = IcrsCoord(
+               self.popAngle(md, "RA_DEG"),
+                self.popAngle(md, "DEC_DEG"),
+            )
+            argDict["boresightAirmass"] = self.popFloat(md, "AIRMASS")
+            argDict["observatory"] = self.observatory
         
-#        return VisitInfo( 1,
-#            exposureTime,
-#            darkTime,
-#            date,
-#            ut1,
-#            era,
-#            boresightRaDec,
-#            boresightAzAlt,
-#            boresightAirmass,
-#            boresightRotAngle,
-#            rotType, 
-#            observatory, 
-#            weather
-#        )
-    
-#        return makeVisitInfo(**argDict)
-
     def getDateAvg(self, md, exposureTime):
         """Return date at the middle of the exposure
         @param[in,out] md  FITS metadata; changed in place
         @param[in] exposureTime  exposure time in sec
         """
-#        startDate = self.popMjdDate(md, "TAI", timesys="TAI")
-        startDate = self.popMjdDate(md, "DATE-OBS", timesys=None)
+        startDate = self.popIsoDate(md, "DATE-OBS", timesys=None)
         return self.offsetDate(startDate, 0.5*exposureTime)
