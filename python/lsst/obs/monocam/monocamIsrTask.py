@@ -92,7 +92,7 @@ class MonocamIsrTask(ip_isr.IsrTask):
         # Don't trust the variance not to be negative (over-subtraction of dark?)
         # Where it's negative, set it to a robust measure of the variance on the image.
         variance = ccdExposure.getMaskedImage().getVariance().getArray()
-        quartiles = numpy.percentiles(ccdExposure.getMaskedImage().getImage().getArray(), [25.0, 75.0])
+        quartiles = numpy.percentile(ccdExposure.getMaskedImage().getImage().getArray(), [25.0, 75.0])
         stdev = 0.74*(quartiles[1] - quartiles[0])
         variance[:] = numpy.where(variance > 0, variance, stdev**2)
 
@@ -111,8 +111,8 @@ class MonocamIsrTask(ip_isr.IsrTask):
         if self.config.doFringe and self.config.fringeAfterFlat:
             self.fringe.run(ccdExposure, **fringes.getDict())
 
-        ccdExposure.getCalib().setFluxMag0(self.config.fluxMag0T1 * ccdExposure.getCalib().getExptime())
-
+#        ccdExposure.getCalib().setFluxMag0(self.config.fluxMag0T1 * ccdExposure.getCalib().getExptime())
+        ccdExposure.getCalib().setFluxMag0(self.config.fluxMag0T1 * ccdExposure.getInfo().getVisitInfo().getExposureTime())
         return pipe_base.Struct(
             exposure=ccdExposure,
         )
