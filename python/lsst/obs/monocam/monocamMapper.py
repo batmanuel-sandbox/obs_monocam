@@ -30,7 +30,6 @@ from .monocam import Monocam, MakeMonocamRawVisitInfo
 
 __all__ = ["MonocamMapper"]
 
-
 class MonocamMapper(CameraMapper):
     packageName = 'obs_monocam'
     
@@ -119,6 +118,7 @@ class MonocamMapper(CameraMapper):
 
     def bypass_raw(self, datasetType, pythonType, location, dataId):
         """Read raw image with hacked metadata"""
+        
         filename = location.getLocations()[0]
         md = self.bypass_raw_md(datasetType, pythonType, location, dataId)
         image = afwImage.DecoratedImageU(filename)
@@ -130,6 +130,8 @@ class MonocamMapper(CameraMapper):
         filename = location.getLocations()[0]
         md = afwImage.readMetadata(filename, 1)  # 1 = PHU
         return md
+    
+    
 
     bypass_raw_amp = bypass_raw
     bypass_raw_amp_md = bypass_raw_md
@@ -158,10 +160,7 @@ class MonocamMapper(CameraMapper):
             exp = item
         else:
             raise RuntimeError("Unrecognised python type: %s" % mapping.python)
-        
-#        filename = location.getLocations()[0]
-#        md = self.bypass_raw_md(datasetType, pythonType, location, dataId)
-#        print(md.paramNames())
+
         exposureId = self._computeCcdExposureId(dataId)
         visitInfo = self.makeRawVisitInfo(md=md, exposureId=exposureId)
         exp.getInfo().setVisitInfo(visitInfo)
@@ -176,7 +175,6 @@ class MonocamMapper(CameraMapper):
         md = self.bypass_raw_md(datasetType, pythonType, location, dataId)
         item = afwImage.DecoratedImageF(filename)
         item.setMetadata(md)
-#        return item
         return self.standardizeCalib("bias", item, dataId)
 
 #    def std_bias(self, item, dataId):
