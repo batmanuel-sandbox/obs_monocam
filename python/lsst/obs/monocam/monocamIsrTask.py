@@ -24,9 +24,9 @@ from builtins import range
 import numpy
 import lsst.ip.isr as ip_isr
 import lsst.pipe.base as pipe_base
+from lsst.obs.base import MakeRawVisitInfo
 
-
-class MonocamIsrTask(ip_isr.IsrTask):
+class MonocamIsrTask(ip_isr.IsrTask, MakeRawVisitInfo):
 
     @pipe_base.timeMethod
     def run(self, ccdExposure, bias=None, dark=None, flat=None, defects=None, fringes=None, bfKernel=None,
@@ -110,7 +110,8 @@ class MonocamIsrTask(ip_isr.IsrTask):
 
         if self.config.doFringe and self.config.fringeAfterFlat:
             self.fringe.run(ccdExposure, **fringes.getDict())
-
+            
+        
 #        ccdExposure.getCalib().setFluxMag0(self.config.fluxMag0T1 * ccdExposure.getCalib().getExptime())
         ccdExposure.getCalib().setFluxMag0(self.config.fluxMag0T1 * ccdExposure.getInfo().getVisitInfo().getExposureTime())
         return pipe_base.Struct(
@@ -135,7 +136,8 @@ class MonocamIsrTask(ip_isr.IsrTask):
         ampDict = {}
         for channel in range(16):
             sensorRef.dataId['channel'] = channel+1  # to get the correct channel
-            ampExposure = sensorRef.get('raw_amp', immediate=True)
+#            ampExposure = sensorRef.get('raw_amp', immediate=True)
+            ampExposure = sensorRef.get('raw', immediate=True)
             ampExposure = self.convertIntToFloat(ampExposure)
             # assumes amps are in order of the channels
             amp = ampExposure.getDetector()[channel]
@@ -145,7 +147,9 @@ class MonocamIsrTask(ip_isr.IsrTask):
             ampDict[amp.getName()] = ampExposure
 
         ccdExposure = self.assembleCcd.assembleCcd(ampDict)
+        
         isrData = self.readIsrData(sensorRef, ccdExposure)
+        
         result = self.run(ccdExposure, **isrData.getDict())
 
         if self.config.doWrite:
